@@ -8,7 +8,7 @@ load_dotenv()
 
 
 class Settings:
-    # LLM provider
+    # LLM provider (for generation)
     LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "zai")
 
     # z.ai
@@ -26,6 +26,9 @@ class Settings:
 
     # Data
     TRANSCRIPT_PATH: str = os.getenv("TRANSCRIPT_PATH", "data/transcript.txt")
+
+    # Chunking
+    OVERLAP_TOKENS: int = int(os.getenv("OVERLAP_TOKENS", "50"))
 
 
 settings = Settings()
