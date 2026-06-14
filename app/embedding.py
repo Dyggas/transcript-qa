@@ -1,14 +1,16 @@
 """Batch embedding generation using Ollama's local embedding API."""
 
 import asyncio
+
 import httpx
+
 from app.config import settings
 
 # Reusable client for connection pooling
 _client: httpx.AsyncClient | None = None
 
-# Limit concurrent requests to avoid overwhelming Ollama
-MAX_CONCURRENT_REQUESTS = 10
+# Batch size for embedding multiple texts in one request
+BATCH_SIZE = 10
 
 
 async def get_client() -> httpx.AsyncClient:
@@ -35,7 +37,7 @@ async def embed_text(text: str) -> list[float]:
 
 async def embed_texts(texts: list[str]) -> list[list[float]]:
     """
-    Generate embeddings for multiple texts with controlled concurrency.
+    Generate embeddings for multiple texts using Ollama batch API.
 
     Args:
         texts: List of texts to embed
@@ -45,42 +47,43 @@ async def embed_texts(texts: list[str]) -> list[list[float]]:
 
     Raises:
         ValueError: If texts list is empty
-        httpx.HTTPError: If API request fails
+        RuntimeError: If API request fails
     """
     if not texts:
         raise ValueError("Cannot embed empty text list")
 
     client = await get_client()
-    semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
+    all_embeddings = []
 
-    # Create concurrent tasks with semaphore limiting
-    tasks = [
-        _embed_single_text(client, semaphore, text)
-        for text in texts
-    ]
+    # Process texts in batches
+    for i in range(0, len(texts), BATCH_SIZE):
+        batch = texts[i : i + BATCH_SIZE]
 
-    # Execute all requests with controlled concurrency
-    embeddings = await asyncio.gather(*tasks)
-    return embeddings
+        try:
+            response = await client.post(
+                f"{settings.OLLAMA_HOST}/api/embed",
+                json={
+                    "model": settings.OLLAMA_EMBED_MODEL,
+                    "input": batch,
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
 
+            # Ollama returns embeddings in the response
+            if "embeddings" in data:
+                all_embeddings.extend(data["embeddings"])
+            else:
+                raise RuntimeError(f"Unexpected API response format: {data}")
 
-async def _embed_single_text(
-    client: httpx.AsyncClient,
-    semaphore: asyncio.Semaphore,
-    text: str
-) -> list[float]:
-    """Generate embedding for a single text with semaphore control."""
-    async with semaphore:
-        response = await client.post(
-            f"{settings.OLLAMA_HOST}/api/embeddings",
-            json={
-                "model": settings.OLLAMA_EMBED_MODEL,
-                "prompt": text,
-            },
-        )
-        response.raise_for_status()
-        data = response.json()
-        return data["embedding"]
+        except httpx.HTTPError as e:
+            raise RuntimeError(f"Ollama API error: {e}") from e
+        except Exception as e:
+            raise RuntimeError(
+                f"Unexpected error with Ollama batch embedding: {e}"
+            ) from e
+
+    return all_embeddings
 
 
 async def close_client():
