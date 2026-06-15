@@ -1,10 +1,14 @@
 """LLM provider interface with connection pooling and error handling."""
 
 import httpx
+
 from app.config import settings
 
 # Reusable client for connection pooling
 _client: httpx.AsyncClient | None = None
+
+# Returned verbatim when the transcript does not contain the answer.
+REFUSAL = "I don't have information about that in the transcript."
 
 
 async def get_client() -> httpx.AsyncClient:
@@ -16,49 +20,35 @@ async def get_client() -> httpx.AsyncClient:
 
 
 async def generate_answer(question: str, context: str) -> str:
-    """
-    Generate an answer to a question using retrieved context.
-
-    Args:
-        question: The user's question
-        context: Retrieved transcript chunks as context
-
-    Returns:
-        Generated answer text
-
-    Raises:
-        RuntimeError: If the LLM request fails
-    """
-    prompt = _build_prompt(question, context)
-    return await _generate_with_ollama(prompt)
+    """Generate an answer to a question grounded in the retrieved context."""
+    return await _ollama_generate(_build_prompt(question, context))
 
 
 def _build_prompt(question: str, context: str) -> str:
-    """Build context-aware prompt for answer generation."""
-    return f"""You are a helpful assistant answering questions about a Victorian home documentary.
+    """Build the grounded answer-generation prompt."""
+    return f"""You are answering questions about a documentary using ONLY the \
+transcript excerpts provided below.
 
-Use the following transcript excerpts to answer the question. Include specific details and timestamps when relevant.
+Rules:
+- Use ONLY information contained in the excerpts. Do not use any outside knowledge.
+- If the excerpts do not contain the answer, reply with EXACTLY: "{REFUSAL}"
+- Include specific details and timestamps from the excerpts where relevant.
+- Do not speculate or invent information that is not in the excerpts.
 
-Context:
+Transcript excerpts:
 {context}
 
 Question: {question}
 
-Provide a clear, informative answer based on the transcript above. If the answer is not in the transcript, say so explicitly."""
+Answer:"""
 
 
-async def _generate_with_ollama(prompt: str) -> str:
+async def _ollama_generate(prompt: str) -> str:
     """
-    Generate answer using Ollama API.
-
-    Args:
-        prompt: The prompt to send to Ollama
-
-    Returns:
-        Generated response text
+    Call Ollama's /api/generate and return the response text.
 
     Raises:
-        RuntimeError: If Ollama API request fails
+        RuntimeError: If the Ollama request fails.
     """
     client = await get_client()
     try:
@@ -71,9 +61,7 @@ async def _generate_with_ollama(prompt: str) -> str:
             },
         )
         response.raise_for_status()
-        data = response.json()
-        return data.get("response", "")
-
+        return response.json().get("response", "")
     except httpx.HTTPError as e:
         raise RuntimeError(f"Ollama API error: {e}") from e
     except Exception as e:

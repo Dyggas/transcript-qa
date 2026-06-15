@@ -9,7 +9,7 @@ from fastapi import FastAPI, HTTPException
 from app import embedding
 from app.chunking import parse_transcript
 from app.config import settings
-from app.llm import generate_answer
+from app.llm import REFUSAL, generate_answer
 from app.retrieval import RetrievalIndex
 from app.schemas import AskRequest, AskResponse, Source, Timings
 
@@ -104,11 +104,11 @@ async def ask_question(request: AskRequest) -> AskResponse:
     results = [(chunk, score) for chunk, score in results if score >= settings.SCORE_FLOOR]
     t2 = time.perf_counter()
 
-    # Out-of-scope question: nothing relevant in the transcript. Refuse instead of
-    # forcing the LLM to answer from irrelevant context.
+    # Out-of-scope question: no chunk cleared the relevance floor. Refuse cheaply
+    # instead of forcing the LLM to answer from irrelevant context.
     if not results:
         return AskResponse(
-            answer="I don't have information about that in the transcript.",
+            answer=REFUSAL,
             sources=[],
             timings=Timings(
                 embed_ms=round((t1 - t0) * 1000),
@@ -121,7 +121,7 @@ async def ask_question(request: AskRequest) -> AskResponse:
     # Build context from retrieved chunks
     context = "\n\n".join(f"[{chunk.timestamp}] {chunk.text}" for chunk, _ in results)
 
-    # Generate answer using LLM
+    # Generate the answer, grounded in the retrieved context.
     try:
         answer = await generate_answer(question, context)
     except RuntimeError as e:
