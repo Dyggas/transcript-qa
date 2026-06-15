@@ -11,17 +11,10 @@ so there is no paid API or cloud dependency. See [DESIGN.md](DESIGN.md) for how 
 ## Prerequisites
 
 - **Docker** (with Compose) — for the recommended run.
-- **Ollama** running on the host machine, with the two models pulled. Ollama is
-  used for both embeddings and generation; the container reaches it over the host
-  network.
-
-```bash
-# install Ollama: https://ollama.com/download, then pull the default models:
-ollama pull nomic-embed-text   # embeddings
-ollama pull qwen2.5:1.5b       # answer generation
-# verify it's serving:
-curl http://localhost:11434/api/tags
-```
+- **Ollama** installed on the host ([download](https://ollama.com/download)).
+  For the Docker run you don't need to start it or pull models by hand —
+  `start_and_run.sh` does both (see below). Ollama powers both embeddings and
+  generation; the container reaches it over the host network.
 
 > Models are configurable — see [Configuration](#configuration). Larger models
 > give better answers if your hardware allows.
