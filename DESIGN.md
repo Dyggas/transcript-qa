@@ -13,6 +13,10 @@ written by hand so the mechanics are explicit and auditable rather than hidden
 behind abstractions. Runtime libraries are just FastAPI (HTTP), httpx, NumPy, and
 tiktoken. Lean and mean :)
 
+**Docker passes through to the host's Ollama** (`host.docker.internal`) rather than 
+bundling an Ollama/model image — keeps the image small and reuses the host's 
+already-pulled models and GPU.
+
 ## 1. Chunking (`app/chunking.py`)
 
 The transcript is `HH:MM:SS` timestamps each followed by a block of speech, so
@@ -45,10 +49,9 @@ original, what we show as the excerpt). ~260 chunks result.
 
 Retrieved chunks are formatted `[HH:MM:SS] text`, joined, and placed in one
 instruction prompt sent to Ollama (`qwen2.5:1.5b`). It is deliberately strict
-because a small local model otherwise drifts to its own knowledge: answer from the
-excerpts only; if the answer is absent, return a fixed refusal string; cite
-timestamps; do not speculate. That refusal string is a single shared constant, so
-the prompt path and the relevance-floor path return identical text.
+because a small local model otherwise drifts to its own knowledge. That refusal
+string is a single shared constant, so the prompt path and the relevance-floor
+path return identical text.
 
 ## 4. Improvements with more time
 
@@ -60,7 +63,6 @@ the prompt path and the relevance-floor path return identical text.
   counts as overengineering :)
 - **Token streaming** (`/ask/stream`, SSE) — a real UX win with long generations.
 
-I also built and then **removed** a one-time generate→critique→revise loop: with a weak
+I also built and then removed a one-time generate→critique→revise loop: with a weak
 model the critic flagged every answer as ungrounded and tripled latency without
-improving grounding — self-critique can't beat the critic's own capability ceiling.
-The cheaper controls that testing validated (relevance floor + strict prompt) stayed.
+improving grounding.
