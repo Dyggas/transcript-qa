@@ -13,6 +13,14 @@ class Source(BaseModel):
     score: float = Field(..., description="Relevance score (cosine similarity, 0–1)")
 
 
+class Timings(BaseModel):
+    embed_ms: int
+    retrieve_ms: int
+    llm_ms: int
+    total_ms: int
+
+
 class AskResponse(BaseModel):
     answer: str
     sources: list[Source]
+    timings: Timings
