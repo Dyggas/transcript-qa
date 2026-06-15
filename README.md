@@ -82,7 +82,8 @@ Questions whose answer isn't in the transcript are refused rather than answered:
 { "answer": "I don't have information about that in the transcript.", "sources": [], "timings": { ... } }
 ```
 
-Interactive API docs are available at `http://localhost:8000/docs`.
+A minimal web UI (text field + answer/sources) is served at
+`http://localhost:8000/ui`. Interactive API docs are at `http://localhost:8000/docs`.
 
 ## Configuration
 

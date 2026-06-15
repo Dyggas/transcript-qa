@@ -3,8 +3,10 @@
 import logging
 import time
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 
 from app import embedding
 from app.chunking import parse_transcript
@@ -56,6 +58,14 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+STATIC_DIR = Path(__file__).parent / "static"
+
+
+@app.get("/ui", response_class=FileResponse)
+async def ui():
+    """Serve the minimal web UI."""
+    return STATIC_DIR / "index.html"
 
 
 @app.get("/")
