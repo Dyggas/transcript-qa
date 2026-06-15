@@ -1,7 +1,5 @@
 """Batch embedding generation using Ollama's local embedding API."""
 
-import asyncio
-
 import httpx
 
 from app.config import settings
