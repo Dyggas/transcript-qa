@@ -1,6 +1,7 @@
 """Top-K cosine similarity retrieval over chunk embeddings."""
 
 import numpy as np
+
 from app.chunking import Chunk
 
 
@@ -82,8 +83,7 @@ class RetrievalIndex:
 
         # Return (chunk, score) tuples
         results = [
-            (self.chunks[idx], float(similarities[idx]))
-            for idx in top_k_indices
+            (self.chunks[idx], float(similarities[idx])) for idx in top_k_indices
         ]
 
         return results
@@ -92,4 +92,3 @@ class RetrievalIndex:
     def embedding_dim(self) -> int:
         """Return the dimension of embeddings."""
         return self.embeddings.shape[1] if len(self.embeddings) > 0 else 0
-
