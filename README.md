@@ -12,9 +12,6 @@ so there is no paid API or cloud dependency. See [DESIGN.md](DESIGN.md) for how 
 
 - **Docker** (with Compose) — for the recommended run.
 - **Ollama** installed on the host ([download](https://ollama.com/download)).
-  For the Docker run you don't need to start it or pull models by hand —
-  `start_and_run.sh` does both (see below). Ollama powers both embeddings and
-  generation; the container reaches it over the host network.
 
 > Models are configurable — see [Configuration](#configuration). Larger models
 > give better answers if your hardware allows.
@@ -23,8 +20,21 @@ so there is no paid API or cloud dependency. See [DESIGN.md](DESIGN.md) for how 
 
 ```bash
 cp .env.example .env          # defaults work out of the box
-docker compose up --build
+./start_and_run.sh            # starts Ollama, pulls models, runs the container
 ```
+
+`start_and_run.sh` orchestrates the whole thing. Step by step it:
+
+1. **Loads `.env`** and exports every setting so both the script and the
+   container see the same model names and config.
+2. **Starts Ollama** bound to `0.0.0.0:11434` in the
+   background, so the container can reach it from inside the Docker network. It
+   registers a cleanup trap that stops Ollama when the script exits (Ctrl-C,
+   error, or normal exit).
+3. **Waits for Ollama to be ready** by polling `/api/tags` before doing anything
+   that depends on it.
+4. **Pulls the embedding and generation models** named in `.env`.
+5. **Runs `docker compose up`**.
 
 On startup the service parses the transcript and embeds all chunks (~2 minutes on
 very, very modest hardware); it's ready once the log shows `Index ready`. The container
@@ -33,12 +43,29 @@ reaches the host's Ollama via `host.docker.internal`, configured in
 
 ## Run natively (alternative)
 
+Without Docker you have to do by hand what `start_and_run.sh` does for you: run
+Ollama, pull the models, then start the API.
+
 ```bash
+# 1. Start Ollama (in a separate terminal, or background it) and pull the models.
+ollama serve &
+ollama pull nomic-embed-text     # embedding model
+ollama pull qwen2.5:1.5b         # generation model
+
+# 2. Set up the Python environment and config.
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env
+cp .env.example .env             # defaults work out of the box
+
+# 3. Start the API.
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
+
+Running natively, the app talks to Ollama at `http://localhost:11434` (the
+`OLLAMA_HOST` default) — no `host.docker.internal` override is involved. If you
+change `OLLAMA_EMBED_MODEL` or `OLLAMA_LLM_MODEL` in `.env`, pull those model
+names instead of the defaults above. As with Docker, the first boot embeds the
+whole transcript and is ready once the log shows `Index ready`.
 
 ## Usage
 
