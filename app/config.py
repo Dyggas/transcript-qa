@@ -8,14 +8,6 @@ load_dotenv()
 
 
 class Settings:
-    # LLM provider (for generation)
-    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "zai")
-
-    # z.ai
-    ZAI_API_KEY: str = os.getenv("ZAI_API_KEY", "")
-    ZAI_BASE_URL: str = os.getenv("ZAI_BASE_URL", "https://api.z.ai/api/paas/v4")
-    ZAI_MODEL: str = os.getenv("ZAI_MODEL", "glm-4-flash")
-
     # Ollama
     OLLAMA_HOST: str = os.getenv("OLLAMA_HOST", "http://localhost:11434")
     OLLAMA_EMBED_MODEL: str = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
