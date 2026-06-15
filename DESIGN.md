@@ -62,6 +62,12 @@ path return identical text.
   the occasional ASR-noise segment that dense retrieval surfaces. Although it probably
   counts as overengineering :)
 - **Token streaming** (`/ask/stream`, SSE) — a real UX win with long generations.
+- **`nomic-embed-text` task prefixes** — the model expects `search_document:` /
+  `search_query:` prefixes on documents and queries; I didn't get to wire these in
+  (and to make them configurable so a different embed model isn't broken by them).
+  Both sides are currently prefix-less and consistent, so retrieval still ranks
+  sensibly, but adding them would improve separation — and `SCORE_FLOOR` would need
+  recalibrating afterwards.
 
 I also built and then removed a one-time generate→critique→revise loop: with a weak
 model the critic flagged every answer as ungrounded and tripled latency without
