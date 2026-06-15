@@ -4,7 +4,11 @@ from pydantic import BaseModel, Field
 
 
 class AskRequest(BaseModel):
-    question: str = Field(..., description="The user's natural-language question")
+    question: str = Field(
+        ...,
+        min_length=1,
+        description="The user's natural-language question",
+    )
 
 
 class Source(BaseModel):

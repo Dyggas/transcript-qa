@@ -135,7 +135,11 @@ async def ask_question(request: AskRequest) -> AskResponse:
     sources = [
         Source(
             timestamp=chunk.timestamp,
-            excerpt=chunk.text[:300] + "..." if len(chunk.text) > 300 else chunk.text,
+            excerpt=(
+                chunk.source_text[:300] + "..."
+                if len(chunk.source_text) > 300
+                else chunk.source_text
+            ),
             score=round(score, 4),
         )
         for chunk, score in results

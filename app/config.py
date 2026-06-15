@@ -23,6 +23,9 @@ class Settings:
 
     # Retrieval
     TOP_K: int = int(os.getenv("TOP_K", "5"))
+    # Minimum cosine similarity for a chunk to count as relevant.
+    # Below this floor a question is treated as out-of-scope.
+    SCORE_FLOOR: float = float(os.getenv("SCORE_FLOOR", "0.3"))
 
     # Data
     TRANSCRIPT_PATH: str = os.getenv("TRANSCRIPT_PATH", "data/transcript.txt")

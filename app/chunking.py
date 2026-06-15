@@ -10,11 +10,18 @@ from app.config import settings
 
 
 class Chunk:
-    """A transcript chunk with timestamp and text."""
+    """A transcript chunk with timestamp and text.
 
-    def __init__(self, timestamp: str, text: str, index: int):
+    ``text`` is what gets embedded and may carry overlap from the previous chunk.
+    ``source_text`` is the clean original (no overlap), used for display/citations.
+    """
+
+    def __init__(
+        self, timestamp: str, text: str, index: int, source_text: str | None = None
+    ):
         self.timestamp = timestamp
         self.text = text
+        self.source_text = source_text if source_text is not None else text
         self.index = index
 
     def __repr__(self) -> str:
@@ -143,10 +150,13 @@ def add_token_overlap(chunks: List[Chunk], overlap_tokens: int = 50) -> List[Chu
             overlap_text = extract_last_tokens(prev_chunk.text, overlap_tokens)
 
             if overlap_text:
-                # Prepend overlap to current chunk
+                # Prepend overlap for embedding, but keep the clean text for display
                 new_text = f"{overlap_text} {chunk.text}".strip()
                 overlapped_chunk = Chunk(
-                    timestamp=chunk.timestamp, text=new_text, index=chunk.index
+                    timestamp=chunk.timestamp,
+                    text=new_text,
+                    index=chunk.index,
+                    source_text=chunk.text,
                 )
                 overlapped_chunks.append(overlapped_chunk)
             else:
